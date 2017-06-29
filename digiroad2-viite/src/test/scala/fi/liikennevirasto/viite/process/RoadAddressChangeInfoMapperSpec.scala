@@ -151,5 +151,58 @@ class RoadAddressChangeInfoMapperSpec extends FunSuite with Matchers {
     addr3.adjustedTimestamp should be (changesVVHTimestamp)
   }
 
+  test("Simple division case"){
+    val roadLinkId1 = 12345L
+    val roadLinkId2 = 12346L
+    val roadLinkId3 = 12347L
+
+    //Mvalues
+    val startM1 = 0.0
+    val endM1 = 48.785
+    val startAddrM1 = 4668L
+    val endAddrM1 = 4717L
+
+    val startM2 = 48.785
+    val endM2 = 61.231
+    val startAddrM2 = 4717
+    val endAddrM2 = 4729
+
+    //01-01-1976 converted to UNIX TIMESTAMP 189302400
+    val roadAdjustedTimestamp = 189302400L
+    val changesVVHTimestamp = 1496818210L
+
+    val roadAddress1 = RoadAddress(1, 1, 1, Track.RightSide, Discontinuity.Continuous, startAddrM1, endAddrM1, Some(DateTime.now), None,
+      None, 0L, roadLinkId1, startM1, endM1, SideCode.AgainstDigitizing, roadAdjustedTimestamp, (None, None), false, Seq(Point(0.000, 0.000), Point(28.000, -7.896), Point(48.200, -10.629), Point(48.200, 1.126)))
+    val roadAddress2 = RoadAddress(2, 1, 1, Track.RightSide, Discontinuity.Continuous, startAddrM2, endAddrM2, Some(DateTime.now), None,
+      None, 0L, roadLinkId1, startM2, endM2, SideCode.AgainstDigitizing, roadAdjustedTimestamp, (None, None), false, Seq(Point(0.000, 0.000), Point(28.000, -7.896), Point(48.200, -10.629), Point(48.200, 1.126)))
+    val map = Seq(roadAddress1, roadAddress2).groupBy(_.linkId)
+    val changes = Seq(
+      //Modifications
+      ChangeInfo(Some(roadLinkId1), Some(roadLinkId1), 6543L, 4, Some(20.384), Some(49.476), Some(29.092), Some(0.0), changesVVHTimestamp),
+      ChangeInfo(Some(roadLinkId1), Some(roadLinkId2), 6544L, 5, Some(0.0), Some(20.384), Some(20.384), Some(0.0), changesVVHTimestamp),
+      ChangeInfo(Some(roadLinkId1), Some(roadLinkId3), 6545L, 5, Some(49.476), Some(61.231), Some(0.0), Some(11.755), changesVVHTimestamp)
+    )
+
+    val results = RoadAddressChangeInfoMapper.resolveChangesToMap(map, Seq(), changes).mapValues(_.sortBy(_.startAddrMValue))
+    results.size should be (1)
+    results.get(roadLinkId1).isEmpty should be (false)
+    results.get(roadLinkId2).isEmpty should be (false)
+    results.get(roadLinkId3).isEmpty should be (false)
+    val addr1 = results(roadLinkId1)
+    val addr2 = results(roadLinkId2)
+    val addr3 = results(roadLinkId3)
+
+    addr1.size should be (2)
+    results.flatMap(_._2).filter(_.floating).size should be (3)
+    results.flatMap(_._2).filter(_.floating).map(_.linkId) should contain allOf (roadLinkId1, roadLinkId2, roadLinkId3)
+
+    addr1.filterNot(_.endDate.isEmpty).head.geom should contain (Point(28.000, -7.896))
+    addr2.size should be (1)
+    addr2.head.geom should contain (Point(0.000, 0.000))
+    addr3.size should be (1)
+    addr3.head.geom should contain (Point(48.200, 1.126))
+
+  }
+
 
 }
