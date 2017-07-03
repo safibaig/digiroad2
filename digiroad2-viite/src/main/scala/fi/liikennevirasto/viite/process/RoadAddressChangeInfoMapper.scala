@@ -3,6 +3,7 @@ package fi.liikennevirasto.viite.process
 import fi.liikennevirasto.digiroad2.linearasset.RoadLink
 import fi.liikennevirasto.digiroad2.{ChangeInfo, Point}
 import fi.liikennevirasto.viite.RoadType
+import fi.liikennevirasto.viite.process.LinkRoadAddressCalculator
 import fi.liikennevirasto.viite.dao.{Discontinuity, RoadAddress}
 import org.slf4j.LoggerFactory
 
@@ -56,6 +57,8 @@ object RoadAddressChangeInfoMapper extends RoadAddressMapper {
     preTransferCheckBySection(originalAddressSections)
     val groupedChanges = changes.groupBy(_.vvhTimeStamp).values.toSeq
     val appliedChanges = applyChanges(groupedChanges.sortBy(_.head.vvhTimeStamp), roadAddresses)
+    //TODO: i might have to rewrite a portion of the recalculate, in detail the private def segmentize(addresses: Seq[RoadAddress], processed: Seq[RoadAddress]): Seq[RoadAddress] method in order to skip the segmentizaion if calibration points do exist
+    val recalculated = LinkRoadAddressCalculator.recalculate(appliedChanges.flatMap(_._2).filter(_.id == fi.liikennevirasto.viite.NewRoadAddress).toSeq)
     val grouped = groupByRoadSection(sections, appliedChanges.values.toSeq.flatten)
     val result = postTransferCheckBySection(grouped, originalAddressSections)
     result.values.toSeq.flatten.groupBy(_.linkId)
@@ -68,7 +71,7 @@ object RoadAddressChangeInfoMapper extends RoadAddressMapper {
     val filteredChanges = changes.filter(c => (c.changeType == 5 || c.changeType == 6) && (roadAddresses.values.toSeq.flatten.map(_.linkId).contains(c.oldId.get)))
     val sects = filteredChanges.flatMap(fi => {
       val ra = roadAddressSeq.find(_.linkId == fi.oldId.getOrElse(-1))
-      partition(Seq(ra.get.copy(linkId = fi.oldId.get)))
+      partition(Seq(ra.get.copy(linkId = fi.oldId.get, startMValue = fi.newStartMeasure.get, endMValue = fi.newEndMeasure.get)))
     })
     sections ++ sects
   }
