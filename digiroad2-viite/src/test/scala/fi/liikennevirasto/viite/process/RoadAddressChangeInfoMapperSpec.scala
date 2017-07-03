@@ -4,7 +4,7 @@ import fi.liikennevirasto.digiroad2.{ChangeInfo, Point}
 import fi.liikennevirasto.digiroad2.asset.SideCode
 import fi.liikennevirasto.digiroad2.util.Track
 import fi.liikennevirasto.viite.NewRoadAddress
-import fi.liikennevirasto.viite.dao.{Discontinuity, RoadAddress}
+import fi.liikennevirasto.viite.dao.{CalibrationPoint, Discontinuity, RoadAddress}
 import fi.liikennevirasto.viite.util.prettyPrint
 import org.joda.time.DateTime
 import org.scalatest.{FunSuite, Matchers}
@@ -171,16 +171,22 @@ class RoadAddressChangeInfoMapperSpec extends FunSuite with Matchers {
     val roadAdjustedTimestamp = 189302400L
     val changesVVHTimestamp = 1496818210L
 
+    val startCalibrationPoint1 = Some(CalibrationPoint(roadLinkId1,endM1,startAddrM1))
+    val endCalibrationPoint1 = Some(CalibrationPoint(roadLinkId1,startM1,endAddrM1))
+
+    val startCalibrationPoint2 = Some(CalibrationPoint(roadLinkId2,endM2,startAddrM2))
+    val endCalibrationPoint2 = Some(CalibrationPoint(roadLinkId2,startM1,endAddrM2))
+//TODO: With the addition of the calibration points, it passes the pre-checks but now it blows up on the geometry utils, line 31, possibly due to a non reversal of the roadAddress direction
     val roadAddress1 = RoadAddress(1, 1, 1, Track.RightSide, Discontinuity.Continuous, startAddrM1, endAddrM1, Some(DateTime.now), None,
-      None, 0L, roadLinkId1, startM1, endM1, SideCode.AgainstDigitizing, roadAdjustedTimestamp, (None, None), false, Seq(Point(0.000, 0.000), Point(28.000, -7.896), Point(48.200, -10.629), Point(48.200, 1.126)))
+      None, 0L, roadLinkId1, startM1, endM1, SideCode.AgainstDigitizing, roadAdjustedTimestamp, (startCalibrationPoint1, endCalibrationPoint1), false, Seq(Point(0.000, 0.000), Point(28.000, -7.896), Point(48.200, 10.629), Point(48.200, 1.126)))
     val roadAddress2 = RoadAddress(2, 1, 1, Track.RightSide, Discontinuity.Continuous, startAddrM2, endAddrM2, Some(DateTime.now), None,
-      None, 0L, roadLinkId1, startM2, endM2, SideCode.AgainstDigitizing, roadAdjustedTimestamp, (None, None), false, Seq(Point(0.000, 0.000), Point(28.000, -7.896), Point(48.200, -10.629), Point(48.200, 1.126)))
+      None, 0L, roadLinkId1, startM2, endM2, SideCode.AgainstDigitizing, roadAdjustedTimestamp, (startCalibrationPoint2, endCalibrationPoint2), false, Seq(Point(0.000, 0.000), Point(28.000, -7.896), Point(48.200, 10.629), Point(48.200, 1.126)))
     val map = Seq(roadAddress1, roadAddress2).groupBy(_.linkId)
     val changes = Seq(
       //Modifications
-      ChangeInfo(Some(roadLinkId1), Some(roadLinkId1), 6543L, 4, Some(20.384), Some(49.476), Some(29.092), Some(0.0), changesVVHTimestamp),
-      ChangeInfo(Some(roadLinkId1), Some(roadLinkId2), 6544L, 5, Some(0.0), Some(20.384), Some(20.384), Some(0.0), changesVVHTimestamp),
-      ChangeInfo(Some(roadLinkId1), Some(roadLinkId3), 6545L, 5, Some(49.476), Some(61.231), Some(0.0), Some(11.755), changesVVHTimestamp)
+      ChangeInfo(Some(roadLinkId1), Some(roadLinkId1), 6543L, 5, Some(20.384), Some(49.476), Some(29.092), Some(0.0), changesVVHTimestamp),
+      ChangeInfo(Some(roadLinkId1), Some(roadLinkId2), 6544L, 6, Some(0.0), Some(20.384), Some(20.384), Some(0.0), changesVVHTimestamp),
+      ChangeInfo(Some(roadLinkId1), Some(roadLinkId3), 6545L, 6, Some(49.476), Some(61.231), Some(0.0), Some(11.755), changesVVHTimestamp)
     )
 
     val results = RoadAddressChangeInfoMapper.resolveChangesToMap(map, Seq(), changes).mapValues(_.sortBy(_.startAddrMValue))
