@@ -201,9 +201,21 @@ object DefloatMapper extends RoadAddressMapper {
   }
 }
 
+trait BaseRoadAddressMapping{
+  def sourceLinkId: Long
+  def targetLinkId: Long
+  def sourceStartM: Double
+  def sourceEndM: Double
+  def targetStartM: Double
+  def targetEndM: Double
+  def sourceGeom: Seq[Point]
+  def targetGeom: Seq[Point]
+  def vvhTimeStamp: Option[Long]
+}
+
 case class RoadAddressMapping(sourceLinkId: Long, targetLinkId: Long, sourceStartM: Double, sourceEndM: Double,
                               targetStartM: Double, targetEndM: Double, sourceGeom: Seq[Point], targetGeom: Seq[Point],
-                              vvhTimeStamp: Option[Long] = None) {
+                              vvhTimeStamp: Option[Long] = None) extends BaseRoadAddressMapping {
   override def toString: String = {
     s"$sourceLinkId -> $targetLinkId: $sourceStartM-$sourceEndM ->  $targetStartM-$targetEndM, $sourceGeom -> $targetGeom"
   }

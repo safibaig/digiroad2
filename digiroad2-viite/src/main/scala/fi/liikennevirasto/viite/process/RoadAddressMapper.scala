@@ -200,7 +200,7 @@ trait RoadAddressMapper {
     Math.min(x._1, x._2)
   }
 
-  def isDirectionMatch(r: RoadAddressMapping): Boolean = {
+  def isDirectionMatch(r: BaseRoadAddressMapping): Boolean = {
     ((r.sourceStartM - r.sourceEndM) * (r.targetStartM - r.targetEndM)) > 0
   }
   def withinTolerance(mValue1: Double, mValue2: Double) = {
